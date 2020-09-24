@@ -3,12 +3,16 @@ import os.path
 
 configfile: "run_binning.config"
 
+# create a dict of stratification names and paths
 stratification_map = {}
+# strat region tsv contains mappings of names to files
 with open(config["stratification_region_tsv"]) as fh:
   for line in fh:
     name, strat_bed = line.rstrip().split('\t')
     stratification_map[name] = config["stratification_bed_dir"] + '/' + strat_bed
 
+
+# define all desired output files
 def get_all_output_files():
   '''
   Find all of the expected outputs
@@ -27,6 +31,7 @@ def get_all_output_files():
   print(expected_files)
   return expected_files
 
+# rule for targets
 rule all:
   input:
     all_outputs = get_all_output_files()
@@ -169,6 +174,7 @@ rule get_filter_list:
     {input.bcftools} view -h {input.annotated_truth_vcf} | grep "^##FILTER" | sed -e 's/^##FILTER=<ID=//' -e 's/,Description=.*$//' > {output.filter_list}
     """
 
+# The filters used are the labels of calls, HET_AS_HOM_REF_FP, TP-HOM, etc.
 rule filter_stratified:
   input:
     stratification_bed = lambda wildcards: stratification_map[wildcards.stratificaiton_name],
@@ -197,6 +203,8 @@ def get_count_vcf(wildcards):
   else:
     return "synthetic_stratified_vcf/" + wildcards.sample + '/' + wildcards.ref_name + '/' + wildcards.stratificaiton_name + "/stratified.vcf.gz"
 
+
+# Count the number of variants in each stratified VCF
 rule count_filters:
   input:
     filter_list = "synthetic_filters/{sample}/{ref_name}/filters.txt",
